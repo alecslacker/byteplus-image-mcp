@@ -1,0 +1,25 @@
+# File hasil generate lokal — jangan di-commit
+*.jpg
+*.jpeg
+*.png
+*.webp
+test-output/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Environment & rahasia
+.env
+*.key
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
