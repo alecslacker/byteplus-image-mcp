@@ -1,4 +1,4 @@
-[project]
+﻿[project]
 name = "byteplus-image-mcp"
 version = "1.0.0"
 description = "MCP server untuk generate image via BytePlus ModelArk (Seedream) — logo, mockup UI/UX, ilustrasi dokumen"
@@ -30,8 +30,8 @@ dependencies = [
 byteplus-image-mcp = "byteplus_image_mcp.server:main"
 
 [project.urls]
-Homepage = "https://github.com/USERNAME_ANDA/byteplus-image-mcp"
-Repository = "https://github.com/USERNAME_ANDA/byteplus-image-mcp"
+Homepage = "https://github.com/alecslacker/byteplus-image-mcp"
+Repository = "https://github.com/alecslacker/byteplus-image-mcp"
 
 [build-system]
 requires = ["hatchling"]

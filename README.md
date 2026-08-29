@@ -1,4 +1,4 @@
-# BytePlus Image MCP
+﻿# BytePlus Image MCP
 
 MCP server untuk generate image via **BytePlus ModelArk** (keluarga model **Seedream** dari ByteDance) — dirancang untuk kebutuhan **logo, mockup UI/UX, dan ilustrasi dokumen/proposal**.
 
@@ -35,7 +35,7 @@ MCP server untuk generate image via **BytePlus ModelArk** (keluarga model **Seed
   "mcpServers": {
     "byteplus-image": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/USERNAME_ANDA/byteplus-image-mcp", "byteplus-image-mcp"],
+      "args": ["--from", "git+https://github.com/alecslacker/byteplus-image-mcp", "byteplus-image-mcp"],
       "env": {
         "BYTEPLUS_API_KEY": "isi-api-key-anda"
       }
@@ -47,7 +47,7 @@ MCP server untuk generate image via **BytePlus ModelArk** (keluarga model **Seed
 ### Cara 2: pip install dari GitHub
 
 ```bash
-pip install git+https://github.com/USERNAME_ANDA/byteplus-image-mcp
+pip install git+https://github.com/alecslacker/byteplus-image-mcp
 ```
 
 Lalu di config MCP client:
@@ -65,7 +65,7 @@ Lalu di config MCP client:
 ### Cara 3: jalankan file langsung (lokal)
 
 ```bash
-git clone https://github.com/USERNAME_ANDA/byteplus-image-mcp
+git clone https://github.com/alecslacker/byteplus-image-mcp
 cd byteplus-image-mcp
 pip install mcp httpx pydantic
 BYTEPLUS_API_KEY=isi-api-key-anda python src/byteplus_image_mcp/server.py
