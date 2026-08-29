@@ -1,4 +1,4 @@
-﻿# BytePlus Image MCP
+# BytePlus Image MCP
 
 MCP server untuk generate image via **BytePlus ModelArk** (keluarga model **Seedream** dari ByteDance) — dirancang untuk kebutuhan **logo, mockup UI/UX, dan ilustrasi dokumen/proposal**.
 

@@ -1,4 +1,4 @@
-﻿[project]
+[project]
 name = "byteplus-image-mcp"
 version = "1.0.0"
 description = "MCP server untuk generate image via BytePlus ModelArk (Seedream) — logo, mockup UI/UX, ilustrasi dokumen"
