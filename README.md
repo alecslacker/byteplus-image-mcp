@@ -1,12 +1,13 @@
 # BytePlus Image MCP
 
-MCP server untuk generate image via **BytePlus ModelArk** (keluarga model **Dola-Seedream 5.0** dari ByteDance) — dirancang untuk kebutuhan **logo, mockup UI/UX, dan ilustrasi dokumen/proposal**.
+MCP server untuk generate image via **BytePlus ModelArk** (keluarga model **Dola-Seedream 5.0** dari ByteDance) — dirancang untuk kebutuhan **logo, mockup UI/UX, dan ilustrasi dokumen/proposal**. Mendukung **text-to-image** dan **image-to-image** (edit/restyle/fusion dengan gambar referensi).
 
 ## ✨ Fitur
 
 - **Auto-routing model cerdas** — sebut `purpose` saja, model dipilih otomatis:
   - `logo` / `mockup` → Dola-Seedream-5.0-pro (teks multibahasa termasuk Bahasa Indonesia, presisi tinggi)
   - `document` → Dola-Seedream-5.0-lite (hemat, resolusi hingga 4K)
+- **Image-to-image** — berikan gambar referensi (`image_paths` path lokal / `image_urls`) untuk edit, restyle, atau fusion beberapa gambar (1–14 referensi)
 - Multi-gambar per request via Lite (mode set gambar konsisten, 1–15)
 - Resolusi per model: Pro 1K/1.5K/2K • Lite 2K/3K/4K — kombinasi tidak valid ditolak dengan pesan solutif
 - Seed reproducible untuk hasil konsisten
@@ -92,6 +93,8 @@ BYTEPLUS_API_KEY=isi-api-key-anda python src/byteplus_image_mcp/server.py
 | `model` | string | — | Override manual model ID |
 | `size` | `1K`\|`1.5K`\|`2K`\|`3K`\|`4K` | `2K` | Resolusi — Pro: 1K/1.5K/2K, Lite: 2K/3K/4K |
 | `count` | 1–15 | `1` | Jumlah gambar; >1 hanya untuk Lite (mode set gambar) |
+| `image_paths` | list string | — | Path gambar referensi lokal (1–14): jpg/png/webp/bmp/tiff/gif, maks 10MB |
+| `image_urls` | list string | — | URL gambar referensi (1–14), mis. URL hasil generate sebelumnya |
 | `seed` | int | — | Reproducible |
 | `save_to_disk` | bool | `true` | Download otomatis |
 | `watermark` | bool | `false` | Watermark pada gambar |
@@ -118,7 +121,30 @@ BYTEPLUS_API_KEY=isi-api-key-anda python src/byteplus_image_mcp/server.py
      size: "2K",
      count: 4
    })
+
+"Edit logo yang sudah ada: ganti warna jadi emas"
+→ byteplus_generate_image({
+     prompt: "change the logo color to luxurious gold, keep the shape and layout unchanged",
+     image_paths: ["C:/uploads/logo-klien.png"],   // gambar referensi
+     purpose: "logo"
+   })
+
+"Fusion: model dari gambar 1 memegang produk dari gambar 2"
+→ byteplus_generate_image({
+     prompt: "the person in image 1 holding the product from image 2, keep background unchanged",
+     image_paths: ["C:/uploads/model.jpg", "C:/uploads/produk.jpg"]
+   })
 ```
+
+### 🖼️ Mode Image-to-Image
+
+Berikan gambar referensi, prompt berubah fungsi menjadi **instruksi edit**:
+
+1. Upload gambar ke chat MCP client (mis. TRAE) — agent akan mengambil path file-nya
+2. Agent memanggil tool dengan `image_paths` (lokal) atau `image_urls` (URL, mis. hasil generate sebelumnya yang masih valid 24 jam)
+3. Aturan: maks **14 gambar referensi** (jpg/png/webp/bmp/tiff/gif, ≤10MB per gambar); Lite: total referensi + hasil ≤ 15; Pro: hasil selalu 1 gambar
+
+Use case: edit logo klien existing, restyle foto produk, mockup dari sketsa, konsistensi karakter antar-aset.
 
 ### `byteplus_list_models`
 Lihat daftar model + harga + resolusi + panduan pemilihan.

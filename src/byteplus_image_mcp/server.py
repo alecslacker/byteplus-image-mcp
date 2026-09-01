@@ -5,6 +5,12 @@ MCP Server: byteplus_image_mcp
 Generate image via BytePlus ModelArk (Dola-Seedream 5.0) untuk kebutuhan
 logo, mockup UI/UX, dan ilustrasi dokumen/proposal.
 
+Mendukung dua mode:
+- Text-to-image       : cukup prompt.
+- Image-to-image      : tambahkan image referensi (path lokal via `image_paths`
+                        atau URL via `image_urls`, 1-14 gambar) untuk edit,
+                        restyle, atau fusion beberapa gambar.
+
 Model yang didukung (aktif di console BytePlus akun Duta Corpora,
 diverifikasi 2026-09-01):
 - dola-seedream-5-0-pro-260628  (Dola-Seedream-5.0-pro — kualitas maksimal:
@@ -87,6 +93,8 @@ MODEL_INFO: Dict[ImageModel, Dict[str, Any]] = {
         "nama": "Dola-Seedream-5.0-pro",
         "sizes": ["1K", "1.5K", "2K"],
         "max_count": 1,
+        "max_ref_images": 14,
+        "max_total_in_out": None,  # output selalu 1, tidak ada aturan gabungan
         "harga_per_gambar_usd": 0.045,
         "kuota_gratis": "cek konsol BytePlus",
         "use_case": (
@@ -98,6 +106,8 @@ MODEL_INFO: Dict[ImageModel, Dict[str, Any]] = {
         "nama": "Dola-Seedream-5.0-lite",
         "sizes": ["2K", "3K", "4K"],
         "max_count": 15,
+        "max_ref_images": 14,
+        "max_total_in_out": 15,  # total gambar referensi + gambar hasil <= 15
         "harga_per_gambar_usd": 0.035,
         "kuota_gratis": "50 gambar (sekali akun)",
         "use_case": (
@@ -105,6 +115,20 @@ MODEL_INFO: Dict[ImageModel, Dict[str, Any]] = {
             "resolusi hingga 4K, pilihan hemat"
         ),
     },
+}
+
+# Batasan input gambar referensi (spesifikasi API BytePlus ModelArk)
+MAX_REF_IMAGES = 14
+MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB per gambar
+MIME_BY_EXT: Dict[str, str] = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+    ".bmp": "image/bmp",
+    ".tiff": "image/tiff",
+    ".tif": "image/tiff",
+    ".gif": "image/gif",
 }
 
 
@@ -180,6 +204,21 @@ class GenerateImageInput(BaseModel):
         ge=0,
         le=2147483647,
     )
+    image_paths: Optional[List[str]] = Field(
+        default=None,
+        description=(
+            "Path file gambar referensi di komputer (1-14 gambar) untuk mode "
+            "image-to-image: edit, restyle, atau fusion. Format didukung: "
+            "jpg/png/webp/bmp/tiff/gif, maksimal 10 MB per gambar."
+        ),
+    )
+    image_urls: Optional[List[str]] = Field(
+        default=None,
+        description=(
+            "URL gambar referensi (1-14) — alternatif image_paths, misalnya URL "
+            "hasil generate sebelumnya (valid 24 jam)."
+        ),
+    )
 
     @field_validator("prompt")
     @classmethod
@@ -202,8 +241,10 @@ def _resolve_model(params: GenerateImageInput) -> ImageModel:
     return ImageModel.DOLA_SEEDREAM_50_PRO  # default & untuk logo/mockup
 
 
-def _validate_model_params(params: GenerateImageInput, model_id: ImageModel) -> Optional[str]:
-    """Validasi kombinasi size & count terhadap kapabilitas model final.
+def _validate_model_params(
+    params: GenerateImageInput, model_id: ImageModel, num_ref_images: int = 0
+) -> Optional[str]:
+    """Validasi kombinasi size, count, dan jumlah gambar referensi.
 
     Mengembalikan pesan error solutif (Bahasa Indonesia) jika tidak valid,
     atau None jika lolos.
@@ -225,7 +266,51 @@ def _validate_model_params(params: GenerateImageInput, model_id: ImageModel) -> 
             "(mendukung hingga 15 gambar per request)."
         )
 
+    if num_ref_images > info["max_ref_images"]:
+        return (
+            f"Error: jumlah gambar referensi ({num_ref_images}) melebihi batas "
+            f"{info['max_ref_images']} milik {info['nama']}. "
+            "Kurangi gambar referensi atau gabungkan beberapa gambar menjadi satu "
+            "referensi terlebih dahulu."
+        )
+
+    max_total = info["max_total_in_out"]
+    if max_total is not None and num_ref_images + params.count > max_total:
+        return (
+            f"Error: total gambar referensi ({num_ref_images}) + gambar hasil "
+            f"({params.count}) melebihi batas {max_total} milik {info['nama']}. "
+            f"Kurangi jumlah gambar referensi atau turunkan count menjadi "
+            f"maksimal {max(1, max_total - num_ref_images)}."
+        )
+
     return None
+
+
+def _encode_image_to_data_uri(path_str: str) -> str:
+    """Baca file gambar lokal dan kembalikan sebagai data URI base64.
+
+    Raises:
+        ValueError: jika file tidak ada, format tidak didukung, atau > 10 MB.
+    """
+    p = Path(path_str)
+    mime = MIME_BY_EXT.get(p.suffix.lower())
+    if mime is None:
+        suffix = p.suffix if p.suffix else "(tanpa ekstensi)"
+        raise ValueError(
+            f"Format gambar '{suffix}' tidak didukung "
+            f"({path_str}). Gunakan: jpg, png, webp, bmp, tiff, atau gif."
+        )
+    if not p.is_file():
+        raise ValueError(f"File gambar referensi tidak ditemukan: {path_str}")
+    data = p.read_bytes()
+    if len(data) > MAX_IMAGE_BYTES:
+        size_mb = round(len(data) / (1024 * 1024), 1)
+        raise ValueError(
+            f"Ukuran gambar referensi {size_mb} MB melebihi batas 10 MB ({path_str}). "
+            "Kompres atau perkecil resolusi gambar terlebih dahulu."
+        )
+    encoded = base64.b64encode(data).decode("ascii")
+    return f"data:{mime};base64,{encoded}"
 
 
 def _ext_from_bytes(data: bytes) -> str:
@@ -318,16 +403,19 @@ async def byteplus_generate_image(params: GenerateImageInput) -> str:
     """Generate gambar via BytePlus ModelArk (Dola-Seedream 5.0) untuk logo, mockup UI/UX, dan ilustrasi dokumen.
 
     Tool ini memanggil API BytePlus images/generations dengan keluarga
-    Dola-Seedream-5.0. Pemakaian mengurangi kuota gratis akun (Lite: 50 gambar)
-    sebelum menyentuh saldo berbayar.
+    Dola-Seedream-5.0. Mendukung text-to-image (cukup prompt) dan
+    image-to-image (dengan gambar referensi via image_paths/image_urls
+    untuk edit, restyle, atau fusion beberapa gambar).
 
     Args:
         params (GenerateImageInput): Parameter tervalidasi:
-            - prompt (str): Deskripsi gambar, 3-2000 karakter
+            - prompt (str): Deskripsi gambar / instruksi edit, 3-2000 karakter
             - model (Optional[ImageModel]): Override model secara eksplisit
             - purpose (Optional[Purpose]): 'logo'/'mockup' -> Pro, 'document' -> Lite
             - size (ImageSize): Pro 1K/1.5K/2K, Lite 2K/3K/4K (default 2K)
             - count (int): 1-15; >1 hanya untuk Lite (mode set gambar)
+            - image_paths (Optional[List[str]]): Path gambar referensi lokal (1-14)
+            - image_urls (Optional[List[str]]): URL gambar referensi (1-14)
             - save_to_disk (bool): Download hasil ke folder output lokal (default true)
             - watermark (bool): Watermark pada gambar (default false)
             - seed (Optional[int]): Untuk hasil reproducible
@@ -352,6 +440,10 @@ async def byteplus_generate_image(params: GenerateImageInput) -> str:
         - "Buatkan logo ..." -> purpose='logo' (Pro)
         - "Mockup halaman utama web ..." -> purpose='mockup' (Pro)
         - "Ilustrasi untuk proposal ..." -> purpose='document' (Lite, hemat)
+        - "Edit logo yang saya upload: ganti warna jadi emas"
+          -> image_paths=[path upload], prompt instruksi edit (Pro)
+        - "Gabungkan: model dari gambar 1 pegang produk dari gambar 2"
+          -> image_paths=[gambar1, gambar2] (fusion)
     """
     if not API_KEY:
         return (
@@ -361,8 +453,17 @@ async def byteplus_generate_image(params: GenerateImageInput) -> str:
 
     model_id = _resolve_model(params)
 
-    # Validasi kombinasi size/count terhadap kapabilitas model final
-    err = _validate_model_params(params, model_id)
+    # Susun daftar gambar referensi: path lokal (di-encode) + URL (langsung)
+    ref_images: List[str] = []
+    for path_str in params.image_paths or []:
+        try:
+            ref_images.append(_encode_image_to_data_uri(path_str))
+        except ValueError as e:
+            return f"Error: {e}"
+    ref_images.extend(params.image_urls or [])
+
+    # Validasi kombinasi size/count/referensi terhadap kapabilitas model final
+    err = _validate_model_params(params, model_id, num_ref_images=len(ref_images))
     if err:
         return err
 
@@ -373,6 +474,11 @@ async def byteplus_generate_image(params: GenerateImageInput) -> str:
         "response_format": params.sequence_format,
         "watermark": params.watermark,
     }
+    # Gambar referensi (image-to-image): string jika 1, array jika lebih
+    if len(ref_images) == 1:
+        payload["image"] = ref_images[0]
+    elif ref_images:
+        payload["image"] = ref_images
     # Multi-gambar (hanya Lite): mode set gambar via sequential_image_generation
     if params.count > 1:
         payload["sequential_image_generation"] = "auto"
@@ -482,7 +588,9 @@ async def byteplus_list_models() -> str:
                 "Gunakan purpose='logo'/'mockup' untuk otomatis pakai "
                 "Dola-Seedream-5.0-pro, purpose='document' untuk "
                 "Dola-Seedream-5.0-lite yang lebih hemat. "
-                "Batch >1 gambar hanya bisa via Lite."
+                "Batch >1 gambar hanya bisa via Lite. "
+                "Mode image-to-image (edit/fusion gambar referensi) "
+                "didukung kedua model via image_paths/image_urls."
             ),
         },
         indent=2,
