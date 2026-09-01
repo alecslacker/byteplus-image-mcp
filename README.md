@@ -1,31 +1,34 @@
 # BytePlus Image MCP
 
-MCP server untuk generate image via **BytePlus ModelArk** (keluarga model **Seedream** dari ByteDance) — dirancang untuk kebutuhan **logo, mockup UI/UX, dan ilustrasi dokumen/proposal**.
+MCP server untuk generate image via **BytePlus ModelArk** (keluarga model **Dola-Seedream 5.0** dari ByteDance) — dirancang untuk kebutuhan **logo, mockup UI/UX, dan ilustrasi dokumen/proposal**.
 
 ## ✨ Fitur
 
 - **Auto-routing model cerdas** — sebut `purpose` saja, model dipilih otomatis:
-  - `logo` / `mockup` → Seedream 4.5 (text rendering terbaik, 4K)
-  - `document` → Seedream 4.0 (hemat, cukup untuk ilustrasi)
-- Multi-gambar per request (1–6), resolusi 1K/2K/4K
+  - `logo` / `mockup` → Dola-Seedream-5.0-pro (teks multibahasa termasuk Bahasa Indonesia, presisi tinggi)
+  - `document` → Dola-Seedream-5.0-lite (hemat, resolusi hingga 4K)
+- Multi-gambar per request via Lite (mode set gambar konsisten, 1–15)
+- Resolusi per model: Pro 1K/1.5K/2K • Lite 2K/3K/4K — kombinasi tidak valid ditolak dengan pesan solutif
 - Seed reproducible untuk hasil konsisten
-- Auto-download hasil ke folder lokal
+- Auto-download hasil ke folder lokal (ekstensi png/jpg terdeteksi otomatis)
 - Error handling lengkap dengan solusi konkret (Bahasa Indonesia)
 
 ## 📊 Model
 
-| Model | Kegunaan | Harga | Kuota Gratis* |
-|---|---|---|---|
-| Seedream 4.5 | Logo, mockup, teks di gambar | $0.04/gambar | 200 gambar |
-| Seedream 4.0 | Ilustrasi dokumen (hemat) | $0.03/gambar | 200 gambar |
+| Model | Model ID | Kegunaan | Resolusi | Harga | Kuota Gratis* |
+|---|---|---|---|---|---|
+| Dola-Seedream-5.0-pro | `dola-seedream-5-0-pro-260628` | Logo, mockup, poster/teks di gambar, precise editing & layer control | 1K, 1.5K, 2K | $0.045/gambar | cek konsol |
+| Dola-Seedream-5.0-lite | `seedream-5-0-260128` | Ilustrasi dokumen (hemat), batch set gambar konsisten (hingga 15) | 2K, 3K, 4K | $0.035/gambar | 50 gambar |
 
-*Kuota gratis akun baru BytePlus. Daftar di [console.byteplus.com](https://console.byteplus.com).
+*Catatan: Pro hanya mendukung 1 gambar per request. Batch multi-gambar hanya via Lite.
+
+Kuota gratis akun baru BytePlus. Daftar di [console.byteplus.com](https://console.byteplus.com). Aktifkan model di ModelArk → Model activation → tab Media.
 
 ## 🚀 Install
 
 ### Prasyarat
 1. Akun [BytePlus](https://console.byteplus.com) dengan API key (ModelArk → API keys)
-2. Aktifkan model Seedream di ModelArk → Model activation → tab Media
+2. Aktifkan model Dola-Seedream-5.0 di ModelArk → Model activation → tab Media
 3. Python ≥ 3.10 dan [uv](https://docs.astral.sh/uv/) (opsional tapi disarankan)
 
 ### Cara 1: uvx langsung dari GitHub (tanpa install manual)
@@ -84,13 +87,14 @@ BYTEPLUS_API_KEY=isi-api-key-anda python src/byteplus_image_mcp/server.py
 
 | Parameter | Tipe | Default | Keterangan |
 |---|---|---|---|
-| `prompt` | string | — | Deskripsi gambar (English disarankan) |
-| `purpose` | `logo`\|`mockup`\|`document` | — | Auto-pilih model |
+| `prompt` | string | — | Deskripsi gambar (Inggris atau Indonesia — Pro memahami Indonesia native) |
+| `purpose` | `logo`\|`mockup`\|`document` | — | Auto-pilih model (logo/mockup→Pro, document→Lite) |
 | `model` | string | — | Override manual model ID |
-| `size` | `1K`\|`2K`\|`4K` | `2K` | Resolusi |
-| `count` | 1–6 | `1` | Jumlah gambar |
+| `size` | `1K`\|`1.5K`\|`2K`\|`3K`\|`4K` | `2K` | Resolusi — Pro: 1K/1.5K/2K, Lite: 2K/3K/4K |
+| `count` | 1–15 | `1` | Jumlah gambar; >1 hanya untuk Lite (mode set gambar) |
 | `seed` | int | — | Reproducible |
 | `save_to_disk` | bool | `true` | Download otomatis |
+| `watermark` | bool | `false` | Watermark pada gambar |
 
 **Contoh pemakaian:**
 
@@ -106,14 +110,22 @@ BYTEPLUS_API_KEY=isi-api-key-anda python src/byteplus_image_mcp/server.py
      prompt: "abstract tech illustration, flowing data lines, blue gradient",
      purpose: "document"
    })
+
+"4 varian ilustrasi konsisten untuk slide deck"
+→ byteplus_generate_image({
+     prompt: "isometric illustration set of Indonesian village scenes ...",
+     model: "seedream-5-0-260128",
+     size: "2K",
+     count: 4
+   })
 ```
 
 ### `byteplus_list_models`
-Lihat daftar model + harga + panduan pemilihan.
+Lihat daftar model + harga + resolusi + panduan pemilihan.
 
 ## 📁 Output
 
-Gambar tersimpan di `BYTEPLUS_IMAGE_OUTPUT_DIR` dengan nama `{timestamp}-{slug-prompt}-{index}.jpg`. URL dari API valid 24 jam; file lokal permanen.
+Gambar tersimpan di `BYTEPLUS_IMAGE_OUTPUT_DIR` dengan nama `{timestamp}-{slug-prompt}-{index}.png|.jpg` (ekstensi mengikuti format asli dari API). URL dari API valid 24 jam; file lokal permanen.
 
 ## 🔒 Keamanan
 

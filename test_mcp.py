@@ -31,11 +31,11 @@ async def main():
         return
 
     print()
-    print("=== TEST 2: generate image (purpose=document -> Seedream 4.0) ===")
+    print("=== TEST 2: generate image (purpose=document -> Dola-Seedream-5.0-lite) ===")
     params = GenerateImageInput(
         prompt="clean geometric illustration of connected nodes network, soft blue gradient background, minimalist professional style",
         purpose=Purpose.DOCUMENT,
-        size="1K",
+        size="2K",
     )
     result = await byteplus_generate_image(params)
     parsed = json.loads(result)

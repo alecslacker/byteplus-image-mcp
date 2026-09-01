@@ -21,5 +21,6 @@ venv/
 # IDE / OS
 .idea/
 .vscode/
+.trae/
 .DS_Store
 Thumbs.db

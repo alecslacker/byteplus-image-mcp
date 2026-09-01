@@ -1,7 +1,7 @@
 [project]
 name = "byteplus-image-mcp"
-version = "1.0.0"
-description = "MCP server untuk generate image via BytePlus ModelArk (Seedream) — logo, mockup UI/UX, ilustrasi dokumen"
+version = "2.0.0"
+description = "MCP server untuk generate image via BytePlus ModelArk (Dola-Seedream 5.0) — logo, mockup UI/UX, ilustrasi dokumen"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
